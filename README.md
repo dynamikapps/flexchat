@@ -66,6 +66,25 @@ The `ChatWidget` component accepts the following props:
 4. Deploy your workflow and copy the webhook URL
 5. Use this URL as the `webhookUrl` prop in the ChatWidget
 
+### Message Format
+
+When a user sends a message, the widget makes a POST request to your webhook URL with the following JSON payload:
+
+```json
+{
+  "message": "User's message text",
+  "sessionId": "1234567890"
+}
+```
+
+Your webhook should respond with a JSON object that includes a `message` property:
+
+```json
+{
+  "message": "Bot response text"
+}
+```
+
 ## Development
 
 ```bash

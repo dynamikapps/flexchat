@@ -40,6 +40,8 @@
 - Created a test file for the ChatWidget component
 - Added widget positioning feature (left/right) ✅
 - Added open/close functionality with toggle button ✅
+- Added message sending functionality with send button ✅
+- Fixed suggested questions functionality ✅
 
 ## Backlog Ideas
 - Keyboard accessibility improvements  

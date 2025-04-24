@@ -240,14 +240,52 @@ const chatStyles = `
     color: white;
     align-self: flex-end;
   }
+  
+  .n8n-chat-message-loading {
+    padding: 8px 12px;
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .n8n-chat-loading-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #94a3b8;
+    margin: 0 3px;
+    animation: loadingDot 1.4s infinite ease-in-out both;
+  }
+  
+  .n8n-chat-loading-dot:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+  
+  .n8n-chat-loading-dot:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+  
+  @keyframes loadingDot {
+    0%, 80%, 100% { 
+      transform: scale(0);
+    }
+    40% { 
+      transform: scale(1);
+    }
+  }
 
   .n8n-chat-input {
     border-top: 1px solid #e2e8f0;
     padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
   .n8n-chat-input input {
-    width: 100%;
+    flex: 1;
     padding: 10px;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
@@ -256,6 +294,38 @@ const chatStyles = `
 
   .n8n-chat-input input:focus {
     border-color: var(--primary-color, #3b82f6);
+  }
+  
+  .n8n-chat-send-button {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-color, #3b82f6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+  
+  .n8n-chat-send-button:hover {
+    background-color: var(--primary-color, #3b82f6);
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+  
+  .n8n-chat-send-button:disabled {
+    background-color: #cbd5e1;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .n8n-chat-send-button svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
   }
 
   .n8n-chat-suggested-messages {
@@ -325,6 +395,13 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 }) => {
   // State to track if the chat widget is open or closed
   const [isOpen, setIsOpen] = useState(initiallyOpen);
+  
+  // State for message input and messages
+  const [inputValue, setInputValue] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>(welcomeText ? [
+    { type: 'bot', message: welcomeText }
+  ] : []);
+  const [isLoading, setIsLoading] = useState(false);
   // Apply custom colors to CSS variables
   useEffect(() => {
     if (primaryColor) {
@@ -429,6 +506,69 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     setIsOpen(!isOpen);
   };
   
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+  };
+  
+  // Handle message send
+  const handleSendMessage = async () => {
+    if (!inputValue.trim()) return;
+    
+    // Add user message to chat
+    const userMessage: ChatMessage = { type: 'user', message: inputValue };
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
+    
+    try {
+      // Send message to webhook
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: inputValue,
+          sessionId: Date.now().toString(), // Simple session ID
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Add bot response to chat
+        const botMessage: ChatMessage = { type: 'bot', message: data.message || 'Thank you for your message!' };
+        setMessages(prev => [...prev, botMessage]);
+      } else {
+        // Handle error
+        const errorMessage: ChatMessage = { type: 'bot', message: 'Sorry, there was an error processing your request.' };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      // Handle network error
+      const errorMessage: ChatMessage = { type: 'bot', message: 'Network error. Please check your connection and try again.' };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Handle key press (Enter to send)
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSendMessage();
+    }
+  };
+  
+  // Handle suggested question click
+  const handleSuggestedQuestionClick = (question: string) => {
+    setInputValue(question);
+    // Small delay to show the question in the input field before sending
+    setTimeout(() => {
+      handleSendMessage();
+    }, 100);
+  };
+  
   return (
     <div className="flex-chat-widget">
       <style>{chatStyles}</style>
@@ -491,25 +631,50 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         </div>
         
         <div className="n8n-chat-messages">
-          {chatConfig.initialMessages?.map((msg, i) => (
+          {messages.map((msg, i) => (
             <div key={i} className={`n8n-chat-message n8n-chat-message-${msg.type}`}>
               {msg.message}
             </div>
           ))}
+          {isLoading && (
+            <div className="n8n-chat-message n8n-chat-message-bot n8n-chat-message-loading">
+              <span className="n8n-chat-loading-dot"></span>
+              <span className="n8n-chat-loading-dot"></span>
+              <span className="n8n-chat-loading-dot"></span>
+            </div>
+          )}
         </div>
         
         <div className="n8n-chat-input">
           <input 
             type="text" 
-            placeholder={chatConfig.theme?.chat?.messageInput?.placeholder || 'Type a message...'} 
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyPress={handleKeyPress}
+            placeholder="Type a message..." 
+            disabled={isLoading}
           />
+          <button 
+            className="n8n-chat-send-button" 
+            onClick={handleSendMessage}
+            disabled={!inputValue.trim() || isLoading}
+            aria-label="Send message"
+          >
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
         </div>
         
-        {chatConfig.suggestedMessages && chatConfig.suggestedMessages.length > 0 && (
+        {suggestedQuestions && suggestedQuestions.length > 0 && (
           <div className="n8n-chat-suggested-messages">
-            {chatConfig.suggestedMessages.map((msg, i) => (
-              <button key={i} className="n8n-chat-suggested-message">
-                {msg.label}
+            {suggestedQuestions.map((question, i) => (
+              <button 
+                key={i} 
+                className="n8n-chat-suggested-message"
+                onClick={() => handleSuggestedQuestionClick(question)}
+              >
+                {question}
               </button>
             ))}
           </div>
