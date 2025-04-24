@@ -379,6 +379,10 @@ export interface ChatWidgetProps {
     phone?: boolean;
     company?: boolean;
   };
+  /** Optional custom handler for sending messages */
+  onSendMessage?: (message: string) => Promise<string>;
+  /** Optional callback for when user data is submitted */
+  onUserDataSubmit?: (data: Record<string, string>) => void;
 }
 
 export const ChatWidget: React.FC<ChatWidgetProps> = ({
@@ -392,6 +396,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   position = 'right',
   initiallyOpen = false,
   userFields = {},
+  onSendMessage,
+  onUserDataSubmit,
 }) => {
   // State to track if the chat widget is open or closed
   const [isOpen, setIsOpen] = useState(initiallyOpen);
@@ -518,35 +524,48 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     // Add user message to chat
     const userMessage: ChatMessage = { type: 'user', message: inputValue };
     setMessages(prev => [...prev, userMessage]);
+    const messageText = inputValue;
     setInputValue('');
     setIsLoading(true);
     
     try {
-      // Send message to webhook
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: inputValue,
-          sessionId: Date.now().toString(), // Simple session ID
-        }),
-      });
+      let responseMessage: string;
       
-      if (response.ok) {
-        const data = await response.json();
-        // Add bot response to chat
-        const botMessage: ChatMessage = { type: 'bot', message: data.message || 'Thank you for your message!' };
-        setMessages(prev => [...prev, botMessage]);
+      // Use custom message handler if provided, otherwise use default
+      if (onSendMessage) {
+        // Use the custom message handler
+        responseMessage = await onSendMessage(messageText);
       } else {
-        // Handle error
-        const errorMessage: ChatMessage = { type: 'bot', message: 'Sorry, there was an error processing your request.' };
-        setMessages(prev => [...prev, errorMessage]);
+        // Default behavior - send message to webhook
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: messageText,
+            sessionId: Date.now().toString(), // Simple session ID
+          }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          responseMessage = data.message || 'Thank you for your message!';
+        } else {
+          throw new Error('Error from server: ' + response.status);
+        }
       }
+      
+      // Add bot response to chat
+      const botMessage: ChatMessage = { type: 'bot', message: responseMessage };
+      setMessages(prev => [...prev, botMessage]);
     } catch (error) {
-      // Handle network error
-      const errorMessage: ChatMessage = { type: 'bot', message: 'Network error. Please check your connection and try again.' };
+      // Handle any errors
+      console.error('Error sending message:', error);
+      const errorMessage: ChatMessage = { 
+        type: 'bot', 
+        message: 'Sorry, there was an error processing your request. Please try again later.' 
+      };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);

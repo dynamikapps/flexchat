@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlexChat Demo</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 0.5em;
+    }
+    p {
+      margin-bottom: 1em;
+    }
+    .code-block {
+      background-color: #f1f5f9;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-family: monospace;
+      margin-bottom: 20px;
+    }
+    .section {
+      margin-bottom: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="section">
+    <h1>FlexChat Embeddable Widget Demo</h1>
+    <p>This page demonstrates how to embed the FlexChat widget on any website using a simple script tag.</p>
+  </div>
+
+  <div class="section">
+    <h2>How to Embed FlexChat</h2>
+    <p>Add the following code to your website:</p>
+    <div class="code-block">
+      <pre><code>&lt;!-- FlexChat Widget --&gt;
+&lt;script&gt;
+  // FlexChat Configuration
+  window.flexChatConfig = {
+    webhookUrl: "https://your-n8n-instance.com/webhook/path",
+    primaryColor: "#3b82f6",
+    welcomeText: "Hello! How can I help you today?",
+    position: "right", // or 'left'
+    logoUrl: "https://your-site.com/logo.png" // optional
+  };
+&lt;/script&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/flexchat@latest/dist/flexchat.min.js" async&gt;&lt;/script&gt;</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Configuration Options</h2>
+    <p>You can customize the chat widget by modifying the <code>window.flexChatConfig</code> object:</p>
+    <ul>
+      <li><strong>webhookUrl</strong> (required): URL to your n8n webhook</li>
+      <li><strong>primaryColor</strong>: Primary color for buttons and accents</li>
+      <li><strong>secondaryColor</strong>: Secondary color for highlights</li>
+      <li><strong>position</strong>: 'left' or 'right' side of the screen</li>
+      <li><strong>initiallyOpen</strong>: Whether the chat should be open on load</li>
+      <li><strong>welcomeText</strong>: Initial message from the bot</li>
+      <li><strong>responseTimeText</strong>: Text indicating expected response time</li>
+      <li><strong>suggestedQuestions</strong>: Array of clickable suggested questions</li>
+      <li><strong>userFields</strong>: Fields to collect from users (name, email, etc.)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Live Demo</h2>
+    <p>The chat widget should appear in the bottom-right corner of this page. Click the chat icon to open it.</p>
+  </div>
+
+  <!-- FlexChat Widget -->
+  <script>
+    // FlexChat Configuration
+    window.flexChatConfig = {
+      webhookUrl: "https://webhook.site/your-webhook-id", // Replace with your actual webhook URL
+      primaryColor: "#3b82f6",
+      welcomeText: "Hello! This is a demo of the FlexChat widget. How can I help you today?",
+      position: "right",
+      suggestedQuestions: [
+        "How do I install FlexChat?",
+        "What features does FlexChat offer?",
+        "How do I connect to n8n?"
+      ],
+      userFields: {
+        name: true,
+        email: true
+      }
+    };
+  </script>
+  <!-- In a real implementation, this would point to the CDN-hosted script -->
+  <script>
+    // This is just a placeholder for the demo
+    console.log("FlexChat script would load here in a real implementation");
+  </script>
+</body>
+</html>
