@@ -108,7 +108,38 @@ The widget accepts the following configuration options:
 | `welcomeText` | `string` | Initial message from the bot |
 | `responseTimeText` | `string` | Text indicating expected response time |
 | `suggestedQuestions` | `string[]` | Array of clickable suggested questions |
-| `userFields` | `object` | Fields to collect from users (name, email, etc.) |
+| `userFields` | `object` | Fields to collect from users (name, email, etc.). Example: `{ name: true, email: true }` |
+
+## User Data Collection
+
+FlexChat can collect user information before starting the chat. This is useful for gathering contact details or other information needed for your workflow.
+
+### Enabling User Data Collection
+
+To enable user data collection, add the `userFields` option to your configuration:
+
+```javascript
+window.flexChatConfig = {
+  webhookUrl: "https://your-n8n-instance.com/webhook/path",
+  // Other options...
+  userFields: {
+    name: true,    // Collect user's name
+    email: true,   // Collect user's email
+    phone: false,  // Don't collect phone number
+    company: false // Don't collect company name
+  }
+};
+```
+
+When enabled, users will see a form asking for their information before they can start chatting. The collected data is sent with each message to your n8n webhook.
+
+### How It Works
+
+1. User clicks the chat icon to open the widget
+2. A form appears asking for the configured information
+3. User fills out the form and clicks "Start Chat"
+4. The regular chat interface appears
+5. All messages include the user's information in the webhook payload
 
 ## n8n Integration
 
@@ -125,15 +156,32 @@ When a user sends a message, the widget makes a POST request to your webhook URL
 ```json
 {
   "message": "User's message text",
-  "sessionId": "1234567890",
+  "sessionId": "fc-1682345abc",
   "userData": {
     "name": "John Doe",
     "email": "john@example.com",
     "phone": "+1234567890",
     "company": "ACME Inc"
+  },
+  "pageContext": {
+    "url": "https://example.com/page",
+    "title": "Example Page Title",
+    "referrer": "https://google.com",
+    "userAgent": "Mozilla/5.0...",
+    "language": "en-US",
+    "timestamp": "2025-04-24T22:05:42.123Z"
   }
 }
 ```
+
+#### Payload Fields
+
+- **message**: The text message sent by the user
+- **sessionId**: A unique identifier for the chat session (persistent across page reloads)
+- **userData**: Information collected from the user via the form (if enabled)
+- **pageContext**: Information about the page where the chat widget is embedded
+
+#### Response Format
 
 Your webhook should respond with a JSON object that includes a `message` property:
 
@@ -142,6 +190,8 @@ Your webhook should respond with a JSON object that includes a `message` propert
   "message": "Bot response text"
 }
 ```
+
+The response message will be displayed in the chat as coming from the bot.
 
 ## Development
 

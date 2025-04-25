@@ -45,11 +45,11 @@
   - Add support for custom data fields to be passed to webhook ✅
   - Add page context information to webhook payload ✅
 
-- **T11: Cross-Platform Embedding**
-  - Create embedding instructions for WordPress
-  - Create embedding instructions for Wix
-  - Create embedding instructions for standard HTML sites
-  - Test embedding on various platforms
+- **T11: Cross-Platform Embedding** ✅
+  - Create embedding instructions for WordPress ✅
+  - Create embedding instructions for Wix ✅
+  - Create embedding instructions for standard HTML sites ✅
+  - Test embedding on various platforms ✅
 
 - **T12: Documentation Update** ✅
   - Update README with embedding instructions ✅
@@ -66,6 +66,8 @@
 - Added open/close functionality with toggle button ✅
 - Added message sending functionality with send button ✅
 - Fixed suggested questions functionality ✅
+- Implemented user data collection form with validation ✅
+- Enhanced webhook payload with user data and session information ✅
 
 ## Backlog Ideas
 - Keyboard accessibility improvements  

@@ -351,6 +351,70 @@ const chatStyles = `
   .n8n-chat-suggested-message:hover {
     background: #e2e8f0;
   }
+  
+  /* User Information Form Styles */
+  .n8n-chat-user-info-form {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow-y: auto;
+  }
+  
+  .n8n-chat-user-info-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #333;
+  }
+  
+  .n8n-chat-user-info-field {
+    margin-bottom: 15px;
+  }
+  
+  .n8n-chat-user-info-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .n8n-chat-user-info-field input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .n8n-chat-user-info-field input:focus {
+    outline: none;
+    border-color: var(--primary-color, #3b82f6);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+  
+  .n8n-chat-required {
+    color: #e53e3e;
+    margin-left: 3px;
+  }
+  
+  .n8n-chat-user-info-submit {
+    background-color: var(--primary-color, #3b82f6);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 15px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.2s ease;
+  }
+  
+  .n8n-chat-user-info-submit:hover {
+    background-color: var(--primary-color-dark, #2563eb);
+  }
 `;
 
 export interface ChatWidgetProps {
@@ -408,6 +472,13 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     { type: 'bot', message: welcomeText }
   ] : []);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // State for user information collection
+  const [userData, setUserData] = useState<Record<string, string>>({});
+  const [userInfoCollected, setUserInfoCollected] = useState(false);
+  const [userInfoFormVisible, setUserInfoFormVisible] = useState(
+    Object.values(userFields).some(Boolean) // Show form if any user fields are enabled
+  );
   // Apply custom colors to CSS variables
   useEffect(() => {
     if (primaryColor) {
@@ -517,9 +588,54 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     setInputValue(e.target.value);
   };
   
+  // Handle user info submission
+  const handleUserInfoSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate that all required fields are filled
+    const requiredFields = userFieldsConfig.filter(field => field.required);
+    const allRequiredFieldsFilled = requiredFields.every(field => {
+      return userData[field.id] && userData[field.id].trim() !== '';
+    });
+    
+    if (!allRequiredFieldsFilled) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+    
+    // Call the onUserDataSubmit callback if provided
+    if (onUserDataSubmit) {
+      onUserDataSubmit(userData);
+    }
+    
+    // Mark user info as collected and hide the form
+    setUserInfoCollected(true);
+    setUserInfoFormVisible(false);
+    
+    // Add a welcome message if none exists
+    if (messages.length === 0) {
+      setMessages([{ type: 'bot', message: welcomeText || 'Hello! How can I help you today?' }]);
+    }
+  };
+  
+  // Handle input change for user info form
+  const handleUserInfoInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setUserData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
   // Handle message send
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
+    
+    // Check if user info needs to be collected first
+    if (Object.values(userFields).some(Boolean) && !userInfoCollected) {
+      setUserInfoFormVisible(true);
+      return;
+    }
     
     // Add user message to chat
     const userMessage: ChatMessage = { type: 'user', message: inputValue };
@@ -545,6 +661,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           body: JSON.stringify({
             message: messageText,
             sessionId: Date.now().toString(), // Simple session ID
+            userData: userData, // Include user data in the request
           }),
         });
         
@@ -649,41 +766,78 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           )}
         </div>
         
-        <div className="n8n-chat-messages">
-          {messages.map((msg, i) => (
-            <div key={i} className={`n8n-chat-message n8n-chat-message-${msg.type}`}>
-              {msg.message}
-            </div>
-          ))}
-          {isLoading && (
-            <div className="n8n-chat-message n8n-chat-message-bot n8n-chat-message-loading">
-              <span className="n8n-chat-loading-dot"></span>
-              <span className="n8n-chat-loading-dot"></span>
-              <span className="n8n-chat-loading-dot"></span>
-            </div>
-          )}
-        </div>
+        {/* User Information Form */}
+        {isOpen && userInfoFormVisible && !userInfoCollected && (
+          <div className="n8n-chat-user-info-form">
+            <div className="n8n-chat-user-info-title">Please provide your information to start chatting</div>
+            <form onSubmit={handleUserInfoSubmit}>
+              {userFieldsConfig.map((field) => (
+                <div key={field.id} className="n8n-chat-user-info-field">
+                  <label htmlFor={field.id}>
+                    {field.label}{field.required && <span className="n8n-chat-required">*</span>}
+                  </label>
+                  <input
+                    type={field.type || 'text'}
+                    id={field.id}
+                    name={field.id}
+                    value={userData[field.id] || ''}
+                    onChange={handleUserInfoInputChange}
+                    required={field.required}
+                    placeholder={`Enter your ${field.label.toLowerCase()}`}
+                  />
+                </div>
+              ))}
+              <button 
+                type="submit" 
+                className="n8n-chat-user-info-submit"
+              >
+                Start Chat
+              </button>
+            </form>
+          </div>
+        )}
         
-        <div className="n8n-chat-input">
-          <input 
-            type="text" 
-            value={inputValue}
-            onChange={handleInputChange}
-            onKeyPress={handleKeyPress}
-            placeholder="Type a message..." 
-            disabled={isLoading}
-          />
-          <button 
-            className="n8n-chat-send-button" 
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
-            aria-label="Send message"
-          >
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-            </svg>
-          </button>
-        </div>
+        {/* Chat Messages - Only show if user info is collected or not required */}
+        {(!userInfoFormVisible || userInfoCollected) && (
+          <div className="n8n-chat-messages">
+            {messages.map((msg, i) => (
+              <div key={i} className={`n8n-chat-message n8n-chat-message-${msg.type}`}>
+                {msg.message}
+              </div>
+            ))}
+            {isLoading && (
+              <div className="n8n-chat-message n8n-chat-message-bot n8n-chat-message-loading">
+                <span className="n8n-chat-loading-dot"></span>
+                <span className="n8n-chat-loading-dot"></span>
+                <span className="n8n-chat-loading-dot"></span>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Chat Input - Only show if user info is collected or not required */}
+        {(!userInfoFormVisible || userInfoCollected) && (
+          <div className="n8n-chat-input">
+            <input 
+              type="text" 
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyPress={handleKeyPress}
+              placeholder="Type a message..." 
+              disabled={isLoading}
+            />
+            <button 
+              className="n8n-chat-send-button" 
+              onClick={handleSendMessage}
+              disabled={!inputValue.trim() || isLoading}
+              aria-label="Send message"
+            >
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+            </button>
+          </div>
+        )}
         
         {suggestedQuestions && suggestedQuestions.length > 0 && (
           <div className="n8n-chat-suggested-messages">
